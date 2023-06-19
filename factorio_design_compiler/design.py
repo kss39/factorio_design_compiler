@@ -93,17 +93,20 @@ class FactorioDesignBlock:
         return self._bps
 
     @property
-    def belts_graph(self):
+    def belts_graph(self) -> BeltsGraph:
         return self._belts_graph
 
     def _generate_belts_df(self):
         df = pd.DataFrame(self._json_obj['blueprint']['entities'])
         df.direction.fillna(0, inplace=True)
         df.direction = df.direction.astype(int)
-        df['x'] = df.position.map(lambda p: p['x']).astype(int)
-        df['y'] = df.position.map(lambda p: p['y']).astype(int)
+        df['x'] = df.position.map(lambda p: p['x'])
+        df['y'] = df.position.map(lambda p: p['y'])
+        print(df)
         df.x -= df.x.min()
         df.y -= df.y.min()
+        df['x'] = df.x.astype(int)
+        df['y'] = df.y.astype(int)
         df.set_index(df.entity_number, inplace=True)
         df.drop(columns=['entity_number', 'position'], inplace=True)
         belts = df[df.name == 'transport-belt']
