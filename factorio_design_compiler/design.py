@@ -24,13 +24,13 @@ class BeltsGraph:
             south = f'{row.x},{row.y+1}'
             west = f'{row.x-1},{row.y}'
             east = f'{row.x+1},{row.y}'
-            if row.direction == 0:
+            if row.direction == 4:
                 front, left, right, back = south, east, west, north
-            elif row.direction == 2:
-                front, left, right, back = west, south, north, east
-            elif row.direction == 4:
-                front, left, right, back = north, west, east, south
             elif row.direction == 6:
+                front, left, right, back = west, south, north, east
+            elif row.direction == 0:
+                front, left, right, back = north, west, east, south
+            elif row.direction == 2:
                 front, left, right, back = east, north, south, west
             else:
                 assert False, 'invalid direction'
@@ -64,16 +64,15 @@ class BeltsGraph:
         g = nx.DiGraph()
         for ind, row in self.belts_df.iterrows():
             g.add_node(ind, x=row.x, y=row.y)
-        print(g)
         for src, row in self.belts_df.iterrows():
             dest = None
-            if row.direction == 0:
+            if row.direction == 4:
                 dest = f'{row.x},{row.y + 1}'
-            elif row.direction == 2:
-                dest = f'{row.x - 1},{row.y}'
-            elif row.direction == 4:
-                dest = f'{row.x},{row.y - 1}'
             elif row.direction == 6:
+                dest = f'{row.x - 1},{row.y}'
+            elif row.direction == 0:
+                dest = f'{row.x},{row.y - 1}'
+            elif row.direction == 2:
                 dest = f'{row.x + 1},{row.y}'
             else:
                 assert False
@@ -82,12 +81,32 @@ class BeltsGraph:
         return g
 
 
-
 class FactorioDesignBlock:
     def __init__(self, blueprint_string: str):
         self._bps = blueprint_string
         self._json_obj = bp_string_to_json(self._bps)
+        self._belts_df = self._generate_belts_df()
+        self._belts_graph = BeltsGraph(self._belts_df)
 
     @property
     def bps(self):
         return self._bps
+
+    @property
+    def belts_graph(self):
+        return self._belts_graph
+
+    def _generate_belts_df(self):
+        df = pd.DataFrame(self._json_obj['blueprint']['entities'])
+        df.direction.fillna(0, inplace=True)
+        df.direction = df.direction.astype(int)
+        df['x'] = df.position.map(lambda p: p['x']).astype(int)
+        df['y'] = df.position.map(lambda p: p['y']).astype(int)
+        df.x -= df.x.min()
+        df.y -= df.y.min()
+        df.set_index(df.entity_number, inplace=True)
+        df.drop(columns=['entity_number', 'position'], inplace=True)
+        belts = df[df.name == 'transport-belt']
+        belts.set_index(belts.x.astype(str) + ',' + belts.y.astype(str),
+                        inplace=True)
+        return belts
