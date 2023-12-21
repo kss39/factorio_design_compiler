@@ -87,10 +87,15 @@ class FactorioDesignBlock:
         self._json_obj = bp_string_to_json(self._bps)
         self._belts_df = self._generate_belts_df()
         self._belts_graph = BeltsGraph(self._belts_df)
+        self._df = pd.DataFrame(self._json_obj['blueprint']['entities'])
 
     @property
     def bps(self):
         return self._bps
+
+    @property
+    def df(self):
+        return self._df
 
     @property
     def belts_graph(self) -> BeltsGraph:
@@ -102,7 +107,6 @@ class FactorioDesignBlock:
         df.direction = df.direction.astype(int)
         df['x'] = df.position.map(lambda p: p['x'])
         df['y'] = df.position.map(lambda p: p['y'])
-        print(df)
         df.x -= df.x.min()
         df.y -= df.y.min()
         df['x'] = df.x.astype(int)
