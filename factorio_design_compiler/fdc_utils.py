@@ -4,6 +4,12 @@ import zlib
 
 
 def bp_string_to_json(bps: str) -> dict:
+    """
+    Returns a decoded json object from a base64 encoded Factorio blueprint
+    string.
+    :param bps: base64 encoded blueprint string
+    :return: the decoded json object
+    """
     json_bytes = zlib.decompress(base64.b64decode(bps[1:]))
     return json.loads(json_bytes)
 
@@ -27,5 +33,6 @@ if __name__ == '__main__':
         'XkLNsJkS1/h5oyw+Di85tXZekKoXpvxF82dHaJ4bnYJnns/s1NRzKjtWT6/9zbl4fi' \
         '5p5r3qyftPy6mTq4oLYL78uy2q/anpIk5WMGZG6PbO+UxgTHU+0VSC/IGqvKqPOfbD' \
         'hRdOFyEO4Yd/8RvoUjYa'
+    print(s)
     j = bp_string_to_json(s)
     print(j['blueprint'])
