@@ -67,7 +67,6 @@ class BeltsGraph(object):
             if (n[0] + n[1]) % 2:
                 node = belts_graph.nodes.get(n)
                 n_spouse = node['spouse']
-                node_spouse = belts_graph.nodes.get(n_spouse)
                 behind = (n[0] - node['delta'][0], n[1] - node['delta'][1])
                 behind_spouse = (
                     n_spouse[0] - node['delta'][0],
