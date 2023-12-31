@@ -10,21 +10,23 @@ class BeltNode(ABC):
         self.position_raw = position
         self.direction_raw = direction
         self.__graph = node_graph
-        self.__node_list = ()
+        self.node_list: Iterable[Tuple[int, int]] = ()
+        self.processed: bool = False
 
     @abstractmethod
     def process_upstream_belts(self):
         pass
 
     @property
-    def node_list(self) -> Iterable[Tuple[int, int]]:
-        return self.__node_list
+    def graph(self) -> DiGraph:
+        return self.__graph
 
-    def __add_self_to_graph(self) -> None:
+    def add_self_to_graph(self) -> None:
         for node_to_add in self.node_list:
             self.__graph.add_node(
                 node_to_add,
-                ref_to_beltnode=self
+                ref_to_beltnode=self,
+                pos=(node_to_add[0], -node_to_add[1])
             )
 
 
@@ -35,39 +37,73 @@ class L1Belt(BeltNode):
         pos_x = int(position[0] * 2)
         pos_y = int(position[1] * 2)
         if direction == 0:  # North
-            self.__node_list = ((pos_x - 1, pos_y - 1), (pos_x, pos_y - 1))
-            self.__behind = ((pos_x-1, pos_y+1), (pos_x, pos_y+1))
+            self.__left = (pos_x-1, pos_y-1)
+            self.__right = (pos_x, pos_y-1)
+            self.__behind_left = (pos_x-1, pos_y+1)
+            self.__behind_right = (pos_x, pos_y+1)
             self.__left_front = (pos_x-2, pos_y-1)
             self.__left_rear = (pos_x-2, pos_y)
             self.__right_front = (pos_x+1, pos_y-1)
             self.__right_rear = (pos_x+1, pos_y)
         elif direction == 2:  # East
-            self.__node_list = ((pos_x, pos_y), (pos_x, pos_y - 1))
-            self.__behind = ((pos_x-2, pos_y), (pos_x-2, pos_y-1))
+            self.__left = (pos_x, pos_y-1)
+            self.__right = (pos_x, pos_y)
+            self.__behind_left = (pos_x-2, pos_y-1)
+            self.__behind_right = (pos_x-2, pos_y)
             self.__left_front = (pos_x, pos_y-2)
             self.__left_rear = (pos_x-1, pos_y-2)
             self.__right_front = (pos_x, pos_y+1)
             self.__right_rear = (pos_x-1, pos_y+1)
         elif direction == 4:  # South
-            self.__node_list = ((pos_x, pos_y), (pos_x - 1, pos_y))
-            self.__behind = ((pos_x, pos_y-2), (pos_x-1, pos_y-2))
+            self.__left = (pos_x, pos_y)
+            self.__right = (pos_x-1, pos_y)
+            self.__behind_left = (pos_x, pos_y-2)
+            self.__behind_right = (pos_x-1, pos_y-2)
             self.__left_front = (pos_x+1, pos_y)
             self.__left_rear = (pos_x+1, pos_y-1)
-            self.__right_front = (pos_x-1, pos_y)
-            self.__right_rear = (pos_x-1, pos_y-1)
+            self.__right_front = (pos_x-2, pos_y)
+            self.__right_rear = (pos_x-2, pos_y-1)
         elif direction == 6:  # West
-            self.__node_list = ((pos_x - 1, pos_y), (pos_x - 1, pos_y - 1))
-            self.__behind = ((pos_x+1, pos_y), (pos_x+1, pos_y-1))
+            self.__left = (pos_x-1, pos_y)
+            self.__right = (pos_x-1, pos_y-1)
+            self.__behind_left = (pos_x+1, pos_y)
+            self.__behind_right = (pos_x+1, pos_y-1)
             self.__left_front = (pos_x-1, pos_y+1)
             self.__left_rear = (pos_x, pos_y+1)
             self.__right_front = (pos_x-1, pos_y-1)
             self.__right_rear = (pos_x, pos_y-1)
         else:
             raise BeltException(f'Unknown belt direction: {direction}')
-        self.__add_self_to_graph()
+        self.node_list = (self.__left, self.__right)
+        self.add_self_to_graph()
 
     def process_upstream_belts(self):
-        raise NotImplementedError
+        # TODO: Be careful of other belt types, such as underground-belts
+        watch_behind = False
+        if self.__behind_left in self.graph and \
+                self.__behind_right in self.graph:
+            self.graph.add_edge(self.__behind_left, self.__left)
+            self.graph.add_edge(self.__behind_right, self.__right)
+            watch_behind = True
+        watch_left, watch_right = False, False
+        if self.__left_front in self.graph and self.__left_rear in self.graph:
+            watch_left = True
+        if self.__right_front in self.graph and self.__right_rear in self.graph:
+            watch_right = True
+        if watch_behind or (watch_left and watch_right):
+            if watch_left:
+                self.graph.add_edge(self.__left_front, self.__left)
+                self.graph.add_edge(self.__left_rear, self.__left)
+            if watch_right:
+                self.graph.add_edge(self.__right_front, self.__right)
+                self.graph.add_edge(self.__right_rear, self.__right)
+        elif watch_left:
+            self.graph.add_edge(self.__left_front, self.__left)
+            self.graph.add_edge(self.__left_rear, self.__right)
+        elif watch_right:
+            self.graph.add_edge(self.__right_front, self.__right)
+            self.graph.add_edge(self.__right_rear, self.__left)
+        self.processed = True
 
 
 class BeltException(Exception):
